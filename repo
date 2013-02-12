@@ -1,0 +1,57 @@
+#!/usr/bin/env perl -l
+
+use warnings;
+use strict;
+
+# Commands that check whether we're in open checkout, with minimal work done
+# Should return 0 in open checkout, non-0 elsewhere
+# Key needs to be command name without arguments, to be used further
+my %commands = (
+    svn => 'svn info',
+    fossil => 'fossil info',
+    git => 'git status',
+    hg => 'hg summary',
+);
+
+sub findVCS {
+    my $found;
+    for my $vcs (keys %commands) {
+        system "$commands{$vcs} >/dev/null 2>&1";
+        if ($? == 0) {
+            die "Both $found and $vcs claim to be in charge!" if $found;
+            $found = $vcs;
+        }
+    }
+    die "No VCS here..." if not $found;
+    return $found;
+}
+
+my $vcs = &findVCS;
+
+if ($ARGV[0] =~ /^up/) {
+    if ($vcs eq 'hg') {
+        system 'hg pull';
+    }
+    if ($vcs eq 'git') {
+        system 'git pull && git checkout'; # Git doesn't use "up"
+        exit;
+    }
+}
+
+if ($ARGV[0] eq 'commit' and $vcs eq 'git') {
+    shift @ARGV;
+    unshift @ARGV, 'commit', '-a';
+}
+
+if ($ARGV[0] eq 'log' and $vcs eq 'fossil') {
+    shift @ARGV;
+    unshift @ARGV, 'timeline';
+}
+
+system $vcs, @ARGV;# or die "system $vcs @ARGV failed: $?";
+
+if ($ARGV[0] eq 'commit') {
+    if ($vcs eq 'git' or $vcs eq 'hg') {
+        system $vcs, 'push';
+    }
+}
