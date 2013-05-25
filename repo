@@ -72,7 +72,17 @@ if ($ARGV[0] eq 'log' and $vcs eq 'fossil') {
     unshift @ARGV, 'timeline';
 }
 
-system $vcs, @ARGV;# or die "system $vcs @ARGV failed: $?";
+if ($ARGV[0] =~ /^stat/ and $vcs eq 'svn') {
+    system 'svn '.join(' ', @ARGV).' | grep -v "^\\?"';
+
+} elsif ($ARGV[0] eq 'extra' and $vcs eq 'svn') {
+    shift @ARGV;
+    system 'svn status '.join(' ', @ARGV).' | grep "^\\?"';
+    unshift @ARGV, 'extra';
+
+} else {
+    system $vcs, @ARGV;# or die "system $vcs @ARGV failed: $?";
+}
 
 if ($ARGV[0] eq 'commit') {
     if ($vcs eq 'git' or $vcs eq 'hg') {
