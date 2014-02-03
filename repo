@@ -62,6 +62,15 @@ if ($ARGV[0] =~ /^up/) {
     }
 }
 
+if ($ARGV[0] eq 'revert' and $vcs eq 'git') {
+    if ($#ARGV > 0) {
+        shift @ARGV;
+        unshift @ARGV, 'checkout';
+    } else {
+        @ARGV = ('reset', '--hard');
+    }
+}
+
 if ($ARGV[0] eq 'commit' and $vcs eq 'git') {
     shift @ARGV;
     unshift @ARGV, 'commit', '-a';
